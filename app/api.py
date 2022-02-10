@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Body, Depends
+from fastapi import FastAPI, Body, Depends, HTTPException
 from app.model import UserSchema, UserLoginSchema
 from app.auth.auth_bearer import JWTBearer
 from app.auth.auth_handler import signJWT
@@ -29,7 +29,7 @@ async def create_user(user: UserSchema = Body(...)):
         new_user = db["Users"].insert_one(user)
         return signJWT(user['email'])
     else:
-        return {"error" : "User Already Exist"}
+        raise HTTPException(status_code=500, detail="Invalid User")
 
 
 @app.post("/user/login", tags=["user"])
@@ -37,10 +37,7 @@ async def user_login(user: UserLoginSchema = Body(...)):
     valid = await check_user(user)
     if valid:
         return signJWT(user.email)
-    return {
-        "error": "Wrong login details!"
-    }
-
+    raise HTTPException(status_code=500, detail="wrong Login")
 
 @app.get("/posts", dependencies=[Depends(JWTBearer())], tags=["posts"])
 async def read_post() -> dict:
