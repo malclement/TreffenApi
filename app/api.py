@@ -1,4 +1,5 @@
 import json
+import pymongo
 
 from bson import json_util
 from fastapi import FastAPI, Body, Depends, HTTPException
@@ -7,8 +8,6 @@ from app.auth.auth_bearer import JWTBearer
 from app.auth.auth_handler import signJWT
 from fastapi.encoders import jsonable_encoder
 from urllib.parse import unquote
-
-import pymongo
 
 uri = 'mongodb+srv://artpel:artyty@treffendb.esk4d.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
 client = pymongo.MongoClient(uri)
@@ -56,11 +55,32 @@ def parse_json(data):
 @app.get("/user/info/{user_email}", tags=["user"])
 async def user_info(user_email: str):
     user_email = unquote(user_email)
-    print(user_email)
     json_results = []
     for results in db.Users.find({"email": user_email}):
         json_results.append(results)
     return parse_json(json_results[0])
+
+
+# Return the info of every user with {friend_name}
+# Output is a list of json
+@app.get("/user/other/search/{friend_name}", tags=["friends"])
+async def search_friend(friend_name: str):
+    output = []
+    friend_name = unquote(friend_name)
+    for results in db.Users.find({"fullname": friend_name}):
+        assert isinstance(results, object)
+        output.append(results)
+    return parse_json(output)
+
+
+def compare_names(name1: str, name2: str):
+    typed_name = name1.split()
+    searched_name = name2.split()
+    for i in range(len(typed_name)):
+        for j in range(len(searched_name)):
+            if typed_name[i] != searched_name[j]:
+                break
+    return 0
 
 
 async def check_user(data: UserLoginSchema):
