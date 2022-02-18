@@ -58,7 +58,10 @@ async def user_info(user_email: str):
     json_results = []
     for results in db.Users.find({"email": user_email}):
         json_results.append(results)
-    return parse_json(json_results[0])
+    if json_results:
+        return parse_json(json_results[0])
+    else:
+        raise HTTPException(status_code=500, detail='No User Found')
 
 
 # Return the info of every user with {friend_name}
@@ -70,7 +73,10 @@ async def search_friend(friend_name: str):
     for results in db.Users.find({"fullname": friend_name}):
         assert isinstance(results, object)
         output.append(results)
-    return parse_json(output)
+    if output:
+        return parse_json(output)
+    else:
+        raise HTTPException(status_code=500, detail='No User Found')
 
 
 def compare_names(name1: str, name2: str):
