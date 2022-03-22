@@ -121,7 +121,7 @@ async def check_signup(data: UserSchema):
     return True
 
 
-# First try adding friends without any need of request
+# Adding friends without any need of request
 @app.post("/relationship/{user_id}/add_friend/{target_user_id}")
 async def create_relationship(user_id: str, target_user_id: str):
     user_id = unquote(user_id)
@@ -138,13 +138,29 @@ async def create_relationship(user_id: str, target_user_id: str):
         raise HTTPException(status_code=500, detail="Invalid Relationship")
 
 
+# Check for users already friends and similar ids
 async def check_relationship(user_id: str, target_user_id: str):
     for results in db_Relationship.Relationship.find({"user_id": user_id, "friend_id": target_user_id}):
         if results:
             return False
     for results in db_Relationship.Relationship.find({"user_id": target_user_id, "friend_id": user_id}):
         if results:
-                return False
+            return False
     if user_id == target_user_id:
         return False
     return True
+
+
+# Take an id and retreive friend list
+@app.get("/user/{user_id}/friends", tags=["friends"])
+async def get_friends(user_id: str):
+    user_id = unquote(user_id)
+    output = []
+    for results in db_Relationship.Relationship.find({"user_id": user_id}):
+        output.append(results)
+    for results in db_Relationship.Relationship.find({"friend_id": user_id}):
+        output.append(results)
+    if output:
+        return parse_json(output)
+    else:
+        raise HTTPException(status_code=500, detail='No Relation Found')
