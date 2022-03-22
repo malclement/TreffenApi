@@ -46,3 +46,11 @@ class Relationship(BaseModel):
     user_id: UUID4
     friend_id: UUID4
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "FRIEND": "TRUE",
+                "user_id": "000000000-0000000000-00000000",
+                "friend_id": "000000000-0000000000-00000000",
+            }
+        }

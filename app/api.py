@@ -120,3 +120,15 @@ async def check_signup(data: UserSchema):
             return False
     return True
 
+
+# First try adding friends without any need of request
+@app.post("/relationship/{user_id}/add_friend/{target_user_id}")
+async def create_relationship(user_id: str, target_user_id: str):
+    user_id = unquote(user_id)
+    target_user_id = unquote(target_user_id)
+    results = {
+                    "FRIEND": "TRUE",
+                    "user_id": user_id,
+                    "friend_id": target_user_id
+               }
+    newRelationship = db_Relationship.Relationship.insert_one(results)
