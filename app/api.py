@@ -1,8 +1,11 @@
 import json
 import pymongo
+import uuid
 
 from bson import json_util
 from fastapi import FastAPI, Body, Depends, HTTPException
+from pydantic import UUID4
+
 from app.model import UserSchema, UserLoginSchema
 from app.auth.auth_bearer import JWTBearer
 from app.auth.auth_handler import signJWT
@@ -12,6 +15,7 @@ from urllib.parse import unquote
 uri = 'mongodb+srv://artpel:artyty@treffendb.esk4d.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
 client = pymongo.MongoClient(uri)
 db = client.Users
+db_Relationship = client.Relationship
 
 app = FastAPI()
 
@@ -64,6 +68,19 @@ async def user_info(user_email: str):
         raise HTTPException(status_code=500, detail='No User Found')
 
 
+# return user info from id
+@app.get("/user/info/id/{user_id}", tags=["user"])
+async def user_info_by_id(user_id: str):
+    user_id = unquote(user_id)
+    json_results = []
+    for results in db.Users.find({"id": user_id}):
+        json_results.append(results)
+    if json_results:
+        return parse_json(json_results[0])
+    else:
+        raise HTTPException(status_code=500, detail='No id Found')
+
+
 # Return the info of every user with {friend_name}
 # Output is a list of json
 @app.get("/user/other/search/{friend_name}", tags=["friends"])
@@ -102,3 +119,4 @@ async def check_signup(data: UserSchema):
         if results['email'] != "":
             return False
     return True
+

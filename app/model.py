@@ -1,7 +1,12 @@
-from pydantic import BaseModel, Field, EmailStr
+import enum
+import uuid
+
+from pydantic import BaseModel, Field, EmailStr, UUID4
 
 
 class UserSchema(BaseModel):
+    id: UUID4 = Field(default_factory=uuid.uuid4)
+    surname: str = Field(...)
     fullname: str = Field(...)
     email: EmailStr = Field(...)
     password: str = Field(...)
@@ -9,6 +14,8 @@ class UserSchema(BaseModel):
     class Config:
         schema_extra = {
             "example": {
+                "id" : "000000000-0000000000-00000000",
+                "surname": "Abdulazeez Abdulazeez Adeshina",
                 "fullname": "Abdulazeez Abdulazeez Adeshina",
                 "email": "abdulazeez@x.com",
                 "password": "weakpassword"
@@ -27,3 +34,15 @@ class UserLoginSchema(BaseModel):
                 "password": "weakpassword"
             }
         }
+
+
+class FriendshipRequest(BaseModel):
+    profile_id: UUID4
+    target_profile_id: UUID4
+
+
+class Relationship(BaseModel):
+    FRIEND: bool # True meaning friends
+    user_id: UUID4
+    friend_id: UUID4
+
