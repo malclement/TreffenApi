@@ -126,9 +126,25 @@ async def check_signup(data: UserSchema):
 async def create_relationship(user_id: str, target_user_id: str):
     user_id = unquote(user_id)
     target_user_id = unquote(target_user_id)
-    results = {
-                    "FRIEND": "TRUE",
-                    "user_id": user_id,
-                    "friend_id": target_user_id
-               }
-    newRelationship = db_Relationship.Relationship.insert_one(results)
+    valid = await check_relationship(user_id, target_user_id)
+    if valid:
+        results = {
+            "FRIEND": "TRUE",
+            "user_id": user_id,
+            "friend_id": target_user_id
+        }
+        newRelationship = db_Relationship.Relationship.insert_one(results)
+    else:
+        raise HTTPException(status_code=500, detail="Invalid Relationship")
+
+
+async def check_relationship(user_id: str, target_user_id: str):
+    for results in db_Relationship.Relationship.find({"user_id": user_id, "friend_id": target_user_id}):
+        if results:
+            return False
+    for results in db_Relationship.Relationship.find({"user_id": target_user_id, "friend_id": user_id}):
+        if results:
+                return False
+    if user_id == target_user_id:
+        return False
+    return True
