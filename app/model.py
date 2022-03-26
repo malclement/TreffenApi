@@ -10,6 +10,7 @@ class UserSchema(BaseModel):
     fullname: str = Field(...)
     email: EmailStr = Field(...)
     password: str = Field(...)
+    profile_pic_url : str = Fiel(...)
 
     class Config:
         schema_extra = {
@@ -18,7 +19,8 @@ class UserSchema(BaseModel):
                 "surname": "Abdulazeez Abdulazeez Adeshina",
                 "fullname": "Abdulazeez Abdulazeez Adeshina",
                 "email": "abdulazeez@x.com",
-                "password": "weakpassword"
+                "password": "weakpassword",
+                "profile_pic_url": "https://xxxxxx",
             }
         }
 
