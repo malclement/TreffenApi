@@ -16,7 +16,6 @@ class UserSchema(BaseModel):
         schema_extra = {
             "example": {
                 "id" : "000000000-0000000000-00000000",
-                "surname": "Abdulazeez Abdulazeez Adeshina",
                 "fullname": "Abdulazeez Abdulazeez Adeshina",
                 "email": "abdulazeez@x.com",
                 "password": "weakpassword",
