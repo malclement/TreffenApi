@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field, EmailStr, UUID4
 
 class UserSchema(BaseModel):
     id: UUID4 = Field(default_factory=uuid.uuid4)
-    surname: str = Field(...)
     fullname: str = Field(...)
     email: EmailStr = Field(...)
     password: str = Field(...)
