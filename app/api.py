@@ -1,9 +1,10 @@
 import json
+from typing import List
+
 import pymongo
-import uuid
 
 from bson import json_util
-from fastapi import FastAPI, Body, Depends, HTTPException
+from fastapi import FastAPI, Body, Depends, HTTPException, WebSocket
 from pydantic import UUID4
 
 from app.model import UserSchema, UserLoginSchema
@@ -12,11 +13,14 @@ from app.auth.auth_handler import signJWT
 from fastapi.encoders import jsonable_encoder
 from urllib.parse import unquote
 
+# Chat Imports
+
 uri = 'mongodb+srv://artpel:artyty@treffendb.esk4d.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
 client = pymongo.MongoClient(uri)
 db = client.Users
 db_Relationship = client.Relationship
 db_POI = client.POI
+db_Chat = client.Chat
 
 app = FastAPI()
 
@@ -24,6 +28,11 @@ app = FastAPI()
 @app.get("/", tags=["root"])
 async def read_root() -> dict:
     return {"message": "Welcome to Treffen API!."}
+
+
+@app.get("/posts", dependencies=[Depends(JWTBearer())], tags=["posts"])
+async def read_post() -> dict:
+    return {"message": "My protected Post"}
 
 
 @app.post("/user/signup", tags=["user"])
@@ -43,11 +52,6 @@ async def user_login(user: UserLoginSchema = Body(...)):
     if valid:
         return signJWT(user.email)
     raise HTTPException(status_code=500, detail="wrong Login")
-
-
-@app.get("/posts", dependencies=[Depends(JWTBearer())], tags=["posts"])
-async def read_post() -> dict:
-    return {"message": "My protected Post"}
 
 
 # allows to serialize ObjectId
@@ -170,4 +174,76 @@ async def get_friends(user_id: str):
 ############ POI API ############
 
 
+############ CHAT ###############
 
+# Create a new chat (2 people)
+@app.post("/chat/private/{user1_id}/{user2_id}", tags=["individual chat"])
+async def create_chat(user1_id: str, user2_id: str):
+    user1_id = unquote(user1_id)
+    user2_id = unquote(user2_id)
+    valid = await check_private_chat(user1_id, user2_id)
+    if valid:
+        chat_id = UUID4
+        results = {
+            "id": chat_id,
+            "user1_id": user1_id,
+            "user2_id": user2_id
+        }
+        newPrivateChat = db_Chat.Chat.insert_one(results)
+    else:
+        raise HTTPException(status_code=500, detail="Invalid Private Chat Demand")
+
+
+# Check if the chat already exist
+async def check_private_chat(user1_id: str, user2_id: str):
+    for results in db_Chat.Chat.find({"user1_id": user1_id, "user2_id": user2_id}):
+        if results:
+            return False
+    for results in db_Relationship.Relationship.find({"user1_id": user2_id, "user2_id": user1_id}):
+        if results:
+            return False
+    if user1_id == user2_id:
+        return False
+    return True
+
+
+# Get chat info from 2 user id
+@app.get("/chat/{user1_id}/{user2_id}", tags=["individual chat"])
+async def get_private_chat(user1_id: str, user2_id: str):
+    user1_id = unquote(user1_id)
+    user2_id = unquote(user2_id)
+    output = []
+    for results in db_Chat.Chat.find({"user1_id": user1_id, "user2_id": user2_id}):
+        output.append(results)
+    for results in db_Relationship.Relationship.find({"user1_id": user2_id, "user2_id": user1_id}):
+        output.append(results)
+    if not output:
+        raise HTTPException(status_code=500, detail="This chat doesn't exit !")
+    else:
+        return output
+
+
+# Chat Service #
+
+class SocketManager:
+    def __init__(self):
+        self.active_connections: List[(WebSocket, str)] = []
+
+    async def connect(self, websocket: WebSocket, user: str):
+        await websocket.accept()
+        self.active_connections.append((websocket, user))
+
+    def disconnect(self, websocket: WebSocket, user: str):
+        self.active_connections.remove((websocket, user))
+
+    async def broadcast(self, data: dict):
+        for connection in self.active_connections:
+            await connection[0].send_json(data)
+
+
+manager = SocketManager()
+
+
+@app.websocket("/chat/private/")
+async def chat(websocket: WebSocket):
+    sender = websocket.cookies

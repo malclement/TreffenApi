@@ -1,4 +1,3 @@
-import enum
 import uuid
 
 from pydantic import BaseModel, Field, EmailStr, UUID4
