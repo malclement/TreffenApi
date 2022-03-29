@@ -16,6 +16,7 @@ uri = 'mongodb+srv://artpel:artyty@treffendb.esk4d.mongodb.net/myFirstDatabase?r
 client = pymongo.MongoClient(uri)
 db = client.Users
 db_Relationship = client.Relationship
+db_POI = client.POI
 
 app = FastAPI()
 
@@ -164,3 +165,9 @@ async def get_friends(user_id: str):
         return parse_json(output)
     else:
         raise HTTPException(status_code=500, detail='No Relation Found')
+
+
+############ POI API ############
+
+
+
