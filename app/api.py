@@ -243,7 +243,7 @@ class SocketManager:
 
 manager = SocketManager()
 
-
+"""
 @app.websocket("/chat/private/{chat_id}/{user_id}")
 async def chat(websocket: WebSocket, chat_id: str, user_id: str):
     chat_id = unquote(chat_id)
@@ -251,3 +251,4 @@ async def chat(websocket: WebSocket, chat_id: str, user_id: str):
     try:
         # Add User
         await manager.connect(websocket, chat_id)
+"""
