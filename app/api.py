@@ -1,9 +1,7 @@
-import json
 from typing import List
 
 import pymongo
 
-from bson import json_util
 from fastapi import FastAPI, Body, Depends, HTTPException, WebSocket
 from pydantic import UUID4
 
@@ -14,6 +12,12 @@ from fastapi.encoders import jsonable_encoder
 from urllib.parse import unquote
 
 # Chat Imports
+import logging
+
+from app.utils import parse_json
+
+logger = logging.getLogger(__name__)
+
 
 uri = 'mongodb+srv://artpel:artyty@treffendb.esk4d.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
 client = pymongo.MongoClient(uri)
@@ -40,7 +44,7 @@ async def create_user(user: UserSchema = Body(...)):
     valid = await check_signup(user)
     if valid:
         user = jsonable_encoder(user)
-        new_user = db["Users"].insert_one(user)
+        db["Users"].insert_one(user)
         return signJWT(user['email'])
     else:
         raise HTTPException(status_code=500, detail="Invalid User")
@@ -52,12 +56,6 @@ async def user_login(user: UserLoginSchema = Body(...)):
     if valid:
         return signJWT(user.email)
     raise HTTPException(status_code=500, detail="wrong Login")
-
-
-# allows to serialize ObjectId
-# used in @app.get("/user/info/{user_email}", tags=["user"])
-def parse_json(data):
-    return json.loads(json_util.dumps(data))
 
 
 # return user info from is email
@@ -138,7 +136,7 @@ async def create_relationship(user_id: str, target_user_id: str):
             "user_id": user_id,
             "friend_id": target_user_id
         }
-        newRelationship = db_Relationship.Relationship.insert_one(results)
+        db_Relationship.Relationship.insert_one(results)
     else:
         raise HTTPException(status_code=500, detail="Invalid Relationship")
 
@@ -189,7 +187,7 @@ async def create_chat(user1_id: str, user2_id: str):
             "user1_id": user1_id,
             "user2_id": user2_id
         }
-        newPrivateChat = db_Chat.Chat.insert_one(results)
+        db_Chat.Chat.insert_one(results)
     else:
         raise HTTPException(status_code=500, detail="Invalid Private Chat Demand")
 
@@ -242,8 +240,11 @@ class SocketManager:
 
 
 manager = SocketManager()
-
 """
+async def upload_message_to_room():
+
+
+# For private chat only
 @app.websocket("/chat/private/{chat_id}/{user_id}")
 async def chat(websocket: WebSocket, chat_id: str, user_id: str):
     chat_id = unquote(chat_id)
@@ -251,4 +252,46 @@ async def chat(websocket: WebSocket, chat_id: str, user_id: str):
     try:
         # Add User
         await manager.connect(websocket, chat_id)
+        data = {
+            "content": f"{user_id} has entered the chat",
+            "user": {"username": user_id},
+            "room_name": chat_id,
+            "type": "entrance",
+        }
+        await manager.broadcast(data)
+        # Wait for message
+        while True:
+            if websocket.application_state == WebSocketState.CONNECTED:
+                data = await websocket.receive_text()
+                message_data = json.loads(data)
+                if "type" in message_data and message_data["type"] == "dismissal":
+                    logger.warning(message_data["content"])
+                    logger.info("Disconnecting from Websocket")
+                    await manager.disconnect(websocket, chat_id)
+                    break
+                else:
+                    await upload_message_to_room(data)
+                    logger.info(f"DATA RECIEVED: {data}")
+                    await manager.broadcast(f"{data}")
+            else:
+                logger.warning(f"Websocket state: {websocket.application_state}, reconnecting...")
+                await manager.connect(websocket, chat_id)
+            except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            logger.error(message)
+            # remove user
+            logger.warning("Disconnecting Websocket")
+            await remove_user_from_room(None, chat_id, username=user_id)
+            room = await get_room(chat_id)
+            data = {
+                "content": f"{user_id} has left the chat",
+                "user": {"username": chat_id},
+                "room_name": chat_id,
+                "type": "dismissal",
+            }
+            await manager.broadcast(f"{json.dumps(data, default=str)}")
+            await manager.disconnect(websocket, chat_id)
+
+    except
 """
