@@ -2,6 +2,9 @@ from typing import List
 
 import pymongo
 
+from geopy.distance import distance
+
+from bson import json_util
 from fastapi import FastAPI, Body, Depends, HTTPException, WebSocket
 from pydantic import UUID4
 
@@ -170,6 +173,14 @@ async def get_friends(user_id: str):
 
 
 ############ POI API ############
+@app.get("/POI/find",tags=["POI"])
+async def find_POI(distance: str,latitude: str, longitude: str):
+    output = []
+    results = db_POI.POI.find({})
+    for items in results:
+        if geopy.distance.distance((float(latitude),float(longitude)),(items['latitude'],items['longitude'])).km < float(distance):
+            output.append(items)
+    return parse_json(output)
 
 
 ############ CHAT ###############
