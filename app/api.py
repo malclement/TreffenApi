@@ -1,4 +1,5 @@
 import json
+import time
 import uuid
 from typing import List
 import pymongo
@@ -330,3 +331,49 @@ async def get_all_chat(user_id: str):
     if not output:
         raise HTTPException(status_code=404, detail="No chat contains this user")
     return parse_json(output)
+
+
+@app.get("/chat/message/{chat_id}", tags=["message"])
+async def get_message(chat_id: str):
+    chat_id = unquote(chat_id)
+    output = []
+    for results in db_Chat.Message.find({"chat_id": chat_id}):
+        output.append(results)
+    if not output:
+        raise HTTPException(status_code=404, detail="No message found in this group")
+    return parse_json(output)
+
+
+@app.post("/chat/message/{user_id}/{chat_id}/{content}", tags=["message"])
+async def post_message(user_id: str, chat_id: str, content: str):
+    user_id = unquote(user_id)
+    content = unquote(content)
+    chat_id = unquote(chat_id)
+    valid = await check_message(user_id, chat_id)
+    if valid:
+        message_id = str(uuid.uuid4())
+        results = {
+            "message_id": message_id,
+            "send_at": time.localtime(),
+            "from_profile_id": user_id,
+            "chat_id": chat_id,
+            "content": content
+        }
+        db_Chat.Message.insert_one(results)
+    else:
+        raise HTTPException(status_code=500, detail="Invalid Post Message Demand")
+
+
+async def check_message(user_id: str, chat_id:str):
+    # Check if user_id is in chat_id
+    output = []
+    for results in db_Chat.Chat.find({"private_chat_id": chat_id, "user1_id": user_id}):
+        output.append(results)
+    for results in db_Chat.Chat.find({"private_chat_id": chat_id, "user2_id": user_id}):
+        output.append(results)
+    for results in db_Chat.Chat.find({"group_chat_id": chat_id, "members": user_id}):
+        output.append(results)
+    if not output:
+        return True
+    else:
+        raise HTTPException(status_code=500, detail="User can't send a message to this chat")

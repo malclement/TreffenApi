@@ -9,7 +9,7 @@ class Message(BaseModel):
     message_id: Optional[UUID]
     send_at: Optional[dt.datetime]
     from_profile_id: UUID
-    chat_group_id: UUID
+    chat_id: UUID
     content: str
 
 
