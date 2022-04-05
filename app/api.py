@@ -131,7 +131,7 @@ async def check_signup(data: UserSchema):
 
 
 # Adding friends without any need of request
-@app.post("/relationship/{user_id}/add_friend/{target_user_id}")
+@app.post("/relationship/{user_id}/add_friend/{target_user_id}", summary="Adding friends without any need of request")
 async def create_relationship(user_id: str, target_user_id: str):
     user_id = unquote(user_id)
     target_user_id = unquote(target_user_id)
@@ -161,7 +161,7 @@ async def check_relationship(user_id: str, target_user_id: str):
 
 
 # Take an id and retreive friend list
-@app.get("/user/{user_id}/friends", tags=["friends"])
+@app.get("/user/{user_id}/friends", tags=["friends"], summary="Take an id and retreive friend list")
 async def get_friends(user_id: str):
     user_id = unquote(user_id)
     output = []
@@ -190,7 +190,7 @@ async def find_POI(dist: str,latitude: str, longitude: str):
 ############ CHAT ###############
 
 # Create a new chat (2 people)
-@app.post("/chat/private/{user1_id}/{user2_id}", tags=["individual chat"])
+@app.post("/chat/private/{user1_id}/{user2_id}", tags=["individual chat"], summary="Create a two people chat")
 async def create_chat(user1_id: str, user2_id: str):
     user1_id = unquote(user1_id)
     user2_id = unquote(user2_id)
@@ -221,7 +221,7 @@ async def check_private_chat(user1_id: str, user2_id: str):
 
 
 # Get chat info from 2 user id
-@app.get("/chat/{user1_id}/{user2_id}", tags=["individual chat"])
+@app.get("/chat/{user1_id}/{user2_id}", tags=["individual chat"], summary="Get chat info from 2 user id")
 async def get_private_chat(user1_id: str, user2_id: str):
     user1_id = unquote(user1_id)
     user2_id = unquote(user2_id)
@@ -333,7 +333,7 @@ async def get_all_chat(user_id: str):
     return parse_json(output)
 
 
-@app.get("/chat/message/{chat_id}", tags=["message"])
+@app.get("/chat/message/{chat_id}", tags=["message"], summary="get all messages of a group")
 async def get_message(chat_id: str):
     chat_id = unquote(chat_id)
     output = []
