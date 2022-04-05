@@ -174,7 +174,7 @@ async def get_friends(user_id: str):
         raise HTTPException(status_code=500, detail='No Relation Found')
 
 
-############ POI API ############
+########## POI API ############
 
 @app.get("/POI/find",tags=["POI"])
 async def find_POI(dist: str,latitude: str, longitude: str):
@@ -229,10 +229,7 @@ async def get_private_chat(user1_id: str, user2_id: str):
         output.append(results)
     for results in db_Relationship.Relationship.find({"user1_id": user2_id, "user2_id": user1_id}):
         output.append(results)
-    if not output:
-        raise HTTPException(status_code=500, detail="This chat doesn't exit !")
-    else:
-        return output
+    return parse_json(output)
 
 
 # Chat Service #
@@ -267,7 +264,7 @@ async def upload_message_to_room(data):
     except Exception as e:
         raise HTTPException(status_code=500, detail="can't upload message on the database")
 
-
+"""
 # For private chat only
 @app.websocket("/chat/private/{chat_id}/{user_id}")
 async def chat(websocket: WebSocket, chat_id: str, user_id: str):
@@ -315,3 +312,4 @@ async def chat(websocket: WebSocket, chat_id: str, user_id: str):
         await manager.broadcast(f"{json.dumps(data, default=str)}")
         await manager.disconnect(websocket, chat_id)
 
+"""
