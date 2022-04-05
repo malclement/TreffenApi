@@ -1,9 +1,11 @@
 import json
 import uuid
 from typing import List
-
 import pymongo
 
+from geopy.distance import distance
+
+from bson import json_util
 from fastapi import FastAPI, Body, Depends, HTTPException, WebSocket
 from pydantic import UUID4
 from starlette.websockets import WebSocketState
@@ -173,6 +175,15 @@ async def get_friends(user_id: str):
 
 
 ############ POI API ############
+
+@app.get("/POI/find",tags=["POI"])
+async def find_POI(dist: str,latitude: str, longitude: str):
+    output = []
+    results = db_POI.POI.find({})
+    for items in results:
+        if distance((float(latitude),float(longitude)),(items['latitude'],items['longitude'])).km < float(dist):
+            output.append(items)
+    return parse_json(output)
 
 
 ############ CHAT ###############
