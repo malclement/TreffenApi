@@ -315,6 +315,8 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: str, user_id: str):
         await manager.disconnect(websocket, chat_id)
 
 
+# functional
+# Only tested for private group
 @app.get("/chat/{user_id}", tags=["chat"])
 async def get_all_chat(user_id: str):
     user_id = unquote(user_id)
