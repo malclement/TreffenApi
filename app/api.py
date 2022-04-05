@@ -1,10 +1,14 @@
+import json
+import uuid
 from typing import List
 
 import pymongo
 
 from fastapi import FastAPI, Body, Depends, HTTPException, WebSocket
 from pydantic import UUID4
+from starlette.websockets import WebSocketState
 
+from app.chat_models import Message
 from app.model import UserSchema, UserLoginSchema
 from app.auth.auth_bearer import JWTBearer
 from app.auth.auth_handler import signJWT
@@ -17,7 +21,6 @@ import logging
 from app.utils import parse_json
 
 logger = logging.getLogger(__name__)
-
 
 uri = 'mongodb+srv://artpel:artyty@treffendb.esk4d.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
 client = pymongo.MongoClient(uri)
@@ -181,7 +184,7 @@ async def create_chat(user1_id: str, user2_id: str):
     user2_id = unquote(user2_id)
     valid = await check_private_chat(user1_id, user2_id)
     if valid:
-        chat_id = UUID4
+        chat_id = str(uuid.uuid4())
         results = {
             "id": chat_id,
             "user1_id": user1_id,
@@ -234,14 +237,24 @@ class SocketManager:
     def disconnect(self, websocket: WebSocket, user: str):
         self.active_connections.remove((websocket, user))
 
-    async def broadcast(self, data: dict):
+    async def broadcast(self, message: str):
         for connection in self.active_connections:
-            await connection[0].send_json(data)
+            await connection.send_text(message)
 
 
 manager = SocketManager()
-"""
-async def upload_message_to_room():
+
+
+async def upload_message_to_room(data):
+    message_data = json.loads(data)
+    try:
+        chat_id = message_data["chat_group_id"]
+        user_id = message_data["from_profile_id"]
+        message_data.pop("room_name", None)
+        db_Chat.update_one({"id": chat_id}, {"$push": {"messages": message_data}})
+        return True
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="can't upload message on the database")
 
 
 # For private chat only
@@ -258,7 +271,7 @@ async def chat(websocket: WebSocket, chat_id: str, user_id: str):
             "room_name": chat_id,
             "type": "entrance",
         }
-        await manager.broadcast(data)
+        await manager.broadcast(f"{json.dumps(data, default=str)}")
         # Wait for message
         while True:
             if websocket.application_state == WebSocketState.CONNECTED:
@@ -271,27 +284,23 @@ async def chat(websocket: WebSocket, chat_id: str, user_id: str):
                     break
                 else:
                     await upload_message_to_room(data)
-                    logger.info(f"DATA RECIEVED: {data}")
-                    await manager.broadcast(f"{data}")
+                    logger.info("DATA RECIEVED")
+                    await manager.broadcast(data)
             else:
                 logger.warning(f"Websocket state: {websocket.application_state}, reconnecting...")
                 await manager.connect(websocket, chat_id)
-            except Exception as ex:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
-            logger.error(message)
-            # remove user
-            logger.warning("Disconnecting Websocket")
-            await remove_user_from_room(None, chat_id, username=user_id)
-            room = await get_room(chat_id)
-            data = {
-                "content": f"{user_id} has left the chat",
-                "user": {"username": chat_id},
-                "room_name": chat_id,
-                "type": "dismissal",
-            }
-            await manager.broadcast(f"{json.dumps(data, default=str)}")
-            await manager.disconnect(websocket, chat_id)
+    except Exception as ex:
+        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        message = template.format(type(ex).__name__, ex.args)
+        logger.error(message)
+        # Remove User
+        logger.warning("Disconnecting Websocket")
+        data = {
+            "content": f"{user_id} has left the chat",
+            "user": {"username": user_id},
+            "room_name": chat_id,
+            "type": "dismissal",
+        }
+        await manager.broadcast(f"{json.dumps(data, default=str)}")
+        await manager.disconnect(websocket, chat_id)
 
-    except
-"""

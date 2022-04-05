@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from uuid import UUID
 
 
-class ChatMessage(BaseModel):
+class Message(BaseModel):
     id: Optional[UUID]
     send_at: Optional[dt.datetime]
     from_profile_id: UUID
