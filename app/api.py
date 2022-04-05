@@ -227,8 +227,10 @@ async def get_private_chat(user1_id: str, user2_id: str):
     output = []
     for results in db_Chat.Chat.find({"user1_id": user1_id, "user2_id": user2_id}):
         output.append(results)
-    for results in db_Relationship.Relationship.find({"user1_id": user2_id, "user2_id": user1_id}):
+    for results in db_Chat.Chat.find({"user1_id": user2_id, "user2_id": user1_id}):
         output.append(results)
+    if not output:
+        raise HTTPException(status_code=500, detail="Invalid Private Chat Demand")
     return parse_json(output)
 
 
@@ -264,10 +266,10 @@ async def upload_message_to_room(data):
     except Exception as e:
         raise HTTPException(status_code=500, detail="can't upload message on the database")
 
-"""
+
 # For private chat only
 @app.websocket("/chat/private/{chat_id}/{user_id}")
-async def chat(websocket: WebSocket, chat_id: str, user_id: str):
+async def websocket_endpoint(websocket: WebSocket, chat_id: str, user_id: str):
     chat_id = unquote(chat_id)
     user_id = unquote(user_id)
     try:
@@ -312,4 +314,17 @@ async def chat(websocket: WebSocket, chat_id: str, user_id: str):
         await manager.broadcast(f"{json.dumps(data, default=str)}")
         await manager.disconnect(websocket, chat_id)
 
-"""
+
+@app.get("/chat/{user_id}", tags=["chat"])
+async def get_all_chat(user_id: str):
+    user_id = unquote(user_id)
+    output = []
+    for results in db_Chat.Chat.find({"user1_id": user_id}):
+        output.append(results)
+    for results in db_Chat.Chat.find({"user2_id": user_id}):
+        output.append(results)
+    for results in db_Chat.Chat.find({"members": user_id}):
+        output.append(results)
+    if not output:
+        raise HTTPException(status_code=404, detail="No chat contains this user")
+    return parse_json(output)
