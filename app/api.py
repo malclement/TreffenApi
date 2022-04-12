@@ -92,17 +92,19 @@ async def user_info_by_id(user_id: str):
 
 # Return the info of every user with {friend_name}
 # Output is a list of json
-@app.get("/user/other/search/{friend_name}", tags=["friends"])
-async def search_friend(friend_name: str):
-    output = []
+
+async def search_user_by_name(friend_name: str, output):
     friend_name = unquote(friend_name)
     for results in db.Users.find({"fullname": friend_name}):
         assert isinstance(results, object)
         output.append(results)
-    if output:
-        return parse_json(output)
-    else:
-        raise HTTPException(status_code=500, detail='No User Found')
+    return output
+
+
+@app.get("/user/other/search/{friend_name}", tags=["friends"])
+async def search_user_name(friend_name: str):
+    output = []
+    output = search_user_by_name(friend_name)
 
 
 def compare_names(name1: str, name2: str):
@@ -277,7 +279,7 @@ async def websocket(websocket: WebSocket):
 
 
 # For private chat only
-@app.websocket("/chat/private/{chat_id}/{user_id}")
+@app.websocket("/ws/chat/private/{chat_id}/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, chat_id: str, user_id: str):
     chat_id = unquote(chat_id)
     user_id = unquote(user_id)
@@ -322,6 +324,7 @@ async def websocket_endpoint(websocket: WebSocket, chat_id: str, user_id: str):
         }
         await manager.broadcast(f"{json.dumps(data, default=str)}")
         await manager.disconnect(websocket, chat_id)
+    return 0
 
 
 # functional
