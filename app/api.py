@@ -87,7 +87,7 @@ async def user_info_by_id(user_id: str):
     if json_results:
         return parse_json(json_results[0])
     else:
-        raise HTTPException(status_code=500, detail='No id Found')
+        raise HTTPException(status_code=404, detail='No id Found')
 
 
 # Return the info of every user with {friend_name}
@@ -177,12 +177,12 @@ async def get_friends(user_id: str):
 
 ########## POI API ############
 
-@app.get("/POI/find",tags=["POI"])
-async def find_POI(dist: str,latitude: str, longitude: str):
+@app.get("/POI/find", tags=["POI"])
+async def find_POI(dist: str, latitude: str, longitude: str):
     output = []
     results = db_POI.POI.find({})
     for items in results:
-        if distance((float(latitude),float(longitude)),(items['latitude'],items['longitude'])).km < float(dist):
+        if distance((float(latitude), float(longitude)), (items['latitude'], items['longitude'])).km < float(dist):
             output.append(items)
     return parse_json(output)
 
@@ -264,8 +264,16 @@ async def upload_message_to_room(data):
         message_data.pop("room_name", None)
         db_Chat.update_one({"id": chat_id}, {"$push": {"messages": message_data}})
         return True
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="can't upload message on the database")
+
+
+# Test websocket
+@app.websocket_route("/ws")
+async def websocket(websocket: WebSocket):
+    await websocket.accept()
+    await websocket.send_json({"msg": "Hello WebSocket"})
+    await websocket.close()
 
 
 # For private chat only
@@ -364,7 +372,7 @@ async def post_message(user_id: str, chat_id: str, content: str):
         raise HTTPException(status_code=500, detail="Invalid Post Message Demand")
 
 
-async def check_message(user_id: str, chat_id:str):
+async def check_message(user_id: str, chat_id: str):
     # Check if user_id is in chat_id
     output = []
     for results in db_Chat.Chat.find({"private_chat_id": chat_id, "user1_id": user_id}):

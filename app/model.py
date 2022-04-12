@@ -8,12 +8,12 @@ class UserSchema(BaseModel):
     fullname: str = Field(...)
     email: EmailStr = Field(...)
     password: str = Field(...)
-    profile_pic_url : str = Field(...)
+    profile_pic_url: str = Field(...)
 
     class Config:
         schema_extra = {
             "example": {
-                "id" : "000000000-0000000000-00000000",
+                "id": "000000000-0000000000-00000000",
                 "fullname": "Abdulazeez Abdulazeez Adeshina",
                 "email": "abdulazeez@x.com",
                 "password": "weakpassword",
@@ -41,7 +41,7 @@ class FriendshipRequest(BaseModel):
 
 
 class Relationship(BaseModel):
-    FRIEND: bool # True meaning friends
+    FRIEND: bool  # True meaning friends
     user_id: UUID4
     friend_id: UUID4
 
