@@ -104,7 +104,14 @@ async def search_user_by_name(friend_name: str, output):
 @app.get("/user/other/search/{friend_name}", tags=["friends"])
 async def search_user_name(friend_name: str):
     output = []
-    output = search_user_by_name(friend_name)
+    friend_name = unquote(friend_name)
+    for results in db.Users.find({"fullname": friend_name}):
+        assert isinstance(results, object)
+        output.append(results)
+    if output:
+        return parse_json(output)
+    else:
+        raise HTTPException(status_code=500, detail='No User Found')
 
 
 def compare_names(name1: str, name2: str):
